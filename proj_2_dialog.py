@@ -21,24 +21,98 @@
  *                                                                         *
  ***************************************************************************/
 """
-
 import os
 
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
+from qgis.core import QgsProject, QgsGeometry, QgsPointXY, Qgis, QgsWkbTypes
+from qgis.utils import iface
 
-# This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
+# Wczytanie pliku .ui, aby PyQt mógł wypełnić wtyczkę elementami z Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'proj_2_dialog_base.ui'))
-
 
 class BasicCalculationsDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, parent=None):
         """Constructor."""
         super(BasicCalculationsDialog, self).__init__(parent)
-        # Set up the user interface from Designer through FORM_CLASS.
-        # After self.setupUi() you can access any designer object by doing
-        # self.<objectname>, and you can use autoconnect slots - see
-        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
-        # #widgets-and-dialogs-with-auto-connect
+        # Konfiguracja interfejsu użytkownika z Designerem przez FORM_CLASS.
         self.setupUi(self)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        self.przycisk_przew.clicked.connect(self.oblicz_roznice_wysokosci)
+        self.przycisk_pole.clicked.connect(self.oblicz_powierzchnie)
+
+    def oblicz_roznice_wysokosci(self):
+        # Pobranie wybranej warstwy
+        warstwa = self.mMapLayerComboBox.currentLayer()
+        if not warstwa:
+            iface.messageBar().pushMessage("Błąd", "Nie wybrano warstwy.", level=Qgis.Warning)
+            return
+
+        # Pobranie wybranych obiektów
+        wybrane_obiekty = warstwa.selectedFeatures()
+        if len(wybrane_obiekty) != 2:
+            iface.messageBar().pushMessage("Błąd", "Wybierz dokładnie 2 punkty.", level=Qgis.Warning)
+            return
+
+        # Wyciągnięcie wysokości z wybranych obiektów
+        try:
+            h1 = float(wybrane_obiekty[0]['wysokosc'])
+            h2 = float(wybrane_obiekty[1]['wysokosc'])
+        except KeyError:
+            iface.messageBar().pushMessage("Błąd", "Brak pola wysokości 'wysokosc' w punktach.", level=Qgis.Critical)
+            return
+
+        przewyzszenie = round(h2 - h1, 3)
+
+        # Wyświetlenie wyniku
+        self.label_wys.setText(f"{przewyzszenie} m")
+        iface.messageBar().pushMessage("Różnica wysokości", f"Różnica wysokości między wybranymi punktami wynosi: {przewyzszenie} m", level=Qgis.Success)
+
+    def oblicz_powierzchnie(self):
+        # Pobranie wybranej warstwy
+        warstwa = self.mMapLayerComboBox.currentLayer()
+        if not warstwa:
+            iface.messageBar().pushMessage("Błąd", "Nie wybrano warstwy.", level=Qgis.Warning)
+            return
+
+        # Pobranie wybranych obiektów
+        wybrane_obiekty = warstwa.selectedFeatures()
+        if len(wybrane_obiekty) < 3:
+            iface.messageBar().pushMessage("Błąd", "Wybierz co najmniej 3 punkty.", level=Qgis.Warning)
+            return
+
+        # Pobranie współrzędnych wybranych punktów
+        punkty = []
+        identyfikatory_punktow = []
+        for f in wybrane_obiekty:
+            geom = f.geometry()
+            if geom.isEmpty() or QgsWkbTypes.geometryType(geom.wkbType()) != QgsWkbTypes.PointGeometry:
+                iface.messageBar().pushMessage("Błąd", "Wybrany obiekt nie jest punktem.", level=Qgis.Warning)
+                return
+            punkt = geom.asPoint()
+            punkty.append(QgsPointXY(punkt.x(), punkt.y()))
+            identyfikatory_punktow.append(f.id())
+
+        # Obliczenie powierzchni przy użyciu wzoru Gaussa
+        powierzchnia = self.powierzchnia_gaussa(punkty)
+
+        # Wyświetlenie wyniku
+        iface.messageBar().pushMessage(
+            "Wynik",
+            f"Powierzchnia wielokąta o wierzchołkach w punktach {', '.join(map(str, identyfikatory_punktow))} wynosi: {powierzchnia} m²",
+            level=Qgis.Success
+        )
+        self.label_pole.setText(f"{powierzchnia} m²")
+
+    def powierzchnia_gaussa(self, punkty):
+        n = len(punkty)
+        powierzchnia = 0.0
+
+        for i in range(n):
+            x1, y1 = punkty[i].x(), punkty[i].y()
+            x2, y2 = punkty[(i + 1) % n].x(), punkty[(i + 1) % n].y()
+            powierzchnia += x1 * y2 - x2 * y1
+
+        return abs(powierzchnia) / 2 
