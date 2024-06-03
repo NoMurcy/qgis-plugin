@@ -67,7 +67,7 @@ class BasicCalculationsDialog(QtWidgets.QDialog, FORM_CLASS):
         przewyzszenie = round(h2 - h1, 3)
 
         # Wyświetlenie wyniku
-        self.label_wys.setText(f"{przewyzszenie} m")
+        self.label_wys.setText("{:.3f} m".format(przewyzszenie))
         iface.messageBar().pushMessage("Różnica wysokości", f"Różnica wysokości między wybranymi punktami wynosi: {przewyzszenie} m", level=Qgis.Success)
 
     def oblicz_powierzchnie(self):
@@ -104,7 +104,7 @@ class BasicCalculationsDialog(QtWidgets.QDialog, FORM_CLASS):
             f"Powierzchnia wielokąta o wierzchołkach w punktach {', '.join(map(str, identyfikatory_punktow))} wynosi: {powierzchnia} m²",
             level=Qgis.Success
         )
-        self.label_pole.setText(f"{powierzchnia} m²")
+        self.label_pole.setText("{:.3f} m²".format(powierzchnia))
 
     def powierzchnia_gaussa(self, punkty):
         n = len(punkty)
