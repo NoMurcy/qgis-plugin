@@ -25,12 +25,13 @@ import os
 
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
-from qgis.core import QgsProject, QgsGeometry, QgsPointXY, Qgis, QgsWkbTypes
+from qgis.core import QgsProject, QgsGeometry, QgsPointXY, Qgis, QgsWkbTypes, QgsFeature, QgsField, QgsVectorLayer
 from qgis.utils import iface
 
 # Wczytanie pliku .ui, aby PyQt mógł wypełnić wtyczkę elementami z Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'proj_2_dialog_base.ui'))
+
 
 class BasicCalculationsDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, parent=None):
@@ -42,6 +43,9 @@ class BasicCalculationsDialog(QtWidgets.QDialog, FORM_CLASS):
         self.button_box.rejected.connect(self.reject)
         self.przycisk_przew.clicked.connect(self.oblicz_roznice_wysokosci)
         self.przycisk_pole.clicked.connect(self.oblicz_powierzchnie)
+        self.przycisk_czysc.clicked.connect(self.czysc_wyniki)
+        self.przycisk_zaznacz.clicked.connect(self.zaznacz_nowe_obiekty)
+        self.poligon.clicked.connect(self.utworz_poligon)
 
     def oblicz_roznice_wysokosci(self):
         # Pobranie wybranej warstwy
@@ -53,7 +57,8 @@ class BasicCalculationsDialog(QtWidgets.QDialog, FORM_CLASS):
         # Pobranie wybranych obiektów
         wybrane_obiekty = warstwa.selectedFeatures()
         if len(wybrane_obiekty) != 2:
-            iface.messageBar().pushMessage("Błąd", "Wybierz dokładnie 2 punkty.", level=Qgis.Warning)
+            iface.messageBar().pushMessage(
+                "Błąd", "Wybierz dokładnie 2 punkty.", level=Qgis.Warning)
             return
 
         # Wyciągnięcie wysokości z wybranych obiektów
@@ -61,14 +66,16 @@ class BasicCalculationsDialog(QtWidgets.QDialog, FORM_CLASS):
             h1 = float(wybrane_obiekty[0]['wysokosc'])
             h2 = float(wybrane_obiekty[1]['wysokosc'])
         except KeyError:
-            iface.messageBar().pushMessage("Błąd", "Brak pola wysokości 'wysokosc' w punktach.", level=Qgis.Critical)
+            iface.messageBar().pushMessage(
+                "Błąd", "Brak pola wysokości 'wysokosc' w punktach.", level=Qgis.Critical)
             return
 
         przewyzszenie = round(h2 - h1, 3)
 
         # Wyświetlenie wyniku
-        self.label_wys.setText("{:.3f} m".format(przewyzszenie))
-        iface.messageBar().pushMessage("Różnica wysokości", f"Różnica wysokości między wybranymi punktami wynosi: {przewyzszenie} m", level=Qgis.Success)
+        self.label_wys.setText(f"{przewyzszenie} m")
+        iface.messageBar().pushMessage("Różnica wysokości",
+                                       f"Różnica wysokości między wybranymi punktami wynosi: {przewyzszenie} m", level=Qgis.Success)
 
     def oblicz_powierzchnie(self):
         # Pobranie wybranej warstwy
@@ -80,7 +87,8 @@ class BasicCalculationsDialog(QtWidgets.QDialog, FORM_CLASS):
         # Pobranie wybranych obiektów
         wybrane_obiekty = warstwa.selectedFeatures()
         if len(wybrane_obiekty) < 3:
-            iface.messageBar().pushMessage("Błąd", "Wybierz co najmniej 3 punkty.", level=Qgis.Warning)
+            iface.messageBar().pushMessage(
+                "Błąd", "Wybierz co najmniej 3 punkty.", level=Qgis.Warning)
             return
 
         # Pobranie współrzędnych wybranych punktów
@@ -89,7 +97,8 @@ class BasicCalculationsDialog(QtWidgets.QDialog, FORM_CLASS):
         for f in wybrane_obiekty:
             geom = f.geometry()
             if geom.isEmpty() or QgsWkbTypes.geometryType(geom.wkbType()) != QgsWkbTypes.PointGeometry:
-                iface.messageBar().pushMessage("Błąd", "Wybrany obiekt nie jest punktem.", level=Qgis.Warning)
+                iface.messageBar().pushMessage(
+                    "Błąd", "Wybrany obiekt nie jest punktem.", level=Qgis.Warning)
                 return
             punkt = geom.asPoint()
             punkty.append(QgsPointXY(punkt.x(), punkt.y()))
@@ -98,13 +107,43 @@ class BasicCalculationsDialog(QtWidgets.QDialog, FORM_CLASS):
         # Obliczenie powierzchni przy użyciu wzoru Gaussa
         powierzchnia = self.powierzchnia_gaussa(punkty)
 
+        # Wybór jednostki na podstawie wyboru użytkownika z rozwijanej listy
+        jednostka = self.comboBox.currentText()
+
+        # Przeliczenie powierzchni na wybraną jednostkę, jeśli to konieczne
+        if jednostka == "ar":
+            powierzchnia /= 100
+        elif jednostka == "ha":
+            powierzchnia /= 10000
+
+        # Zaokrąglenie wyniku do 3 miejsc po przecinku
+        powierzchnia = round(powierzchnia, 3)
+
         # Wyświetlenie wyniku
         iface.messageBar().pushMessage(
             "Wynik",
-            f"Powierzchnia wielokąta o wierzchołkach w punktach {', '.join(map(str, identyfikatory_punktow))} wynosi: {powierzchnia} m²",
+            f"Powierzchnia wielokąta o wierzchołkach w punktach {', '.join(map(str, identyfikatory_punktow))} wynosi: {powierzchnia} {jednostka}",
             level=Qgis.Success
         )
-        self.label_pole.setText("{:.3f} m²".format(powierzchnia))
+        self.label_pole.setText(f"{powierzchnia} {jednostka}")
+
+    def czysc_wyniki(self):
+        """Czyszczenie wyników."""
+        self.label_wys.clear()
+        self.label_pole.clear()
+        self.label_poligon.clear()
+        iface.messageBar().clearWidgets()
+
+    def zaznacz_nowe_obiekty(self):
+        """Pozwala użytkownikowi zaznaczyć nowe obiekty."""
+        warstwa = self.mMapLayerComboBox.currentLayer()
+        if not warstwa:
+            iface.messageBar().pushMessage("Błąd", "Nie wybrano warstwy.", level=Qgis.Warning)
+            return
+
+        warstwa.removeSelection()  # Usuń obecne zaznaczenie
+        iface.messageBar().pushMessage(
+            "Informacja", "Wybierz nowe obiekty na mapie.", level=Qgis.Info)
 
     def powierzchnia_gaussa(self, punkty):
         n = len(punkty)
@@ -115,4 +154,64 @@ class BasicCalculationsDialog(QtWidgets.QDialog, FORM_CLASS):
             x2, y2 = punkty[(i + 1) % n].x(), punkty[(i + 1) % n].y()
             powierzchnia += x1 * y2 - x2 * y1
 
-        return abs(powierzchnia) / 2 
+        return abs(powierzchnia) / 2
+
+    def utworz_poligon(self, punkty):
+        # Pobranie wybranej warstwy
+        warstwa = self.mMapLayerComboBox.currentLayer()
+        if not warstwa:
+            iface.messageBar().pushMessage("Błąd", "Nie wybrano warstwy.", level=Qgis.Warning)
+            return
+
+        # Pobranie wybranych obiektów
+        wybrane_obiekty = warstwa.selectedFeatures()
+        if len(wybrane_obiekty) < 3:
+            iface.messageBar().pushMessage(
+                "Błąd", "Wybierz co najmniej 3 punkty.", level=Qgis.Warning)
+            return
+
+        # Pobranie współrzędnych wybranych punktów
+        punkty = []
+        identyfikatory_punktow = []
+        for f in wybrane_obiekty:
+            geom = f.geometry()
+            if geom.isEmpty() or QgsWkbTypes.geometryType(geom.wkbType()) != QgsWkbTypes.PointGeometry:
+                iface.messageBar().pushMessage(
+                    "Błąd", "Wybrany obiekt nie jest punktem.", level=Qgis.Warning)
+                return
+            punkt = geom.asPoint()
+            punkty.append(QgsPointXY(punkt.x(), punkt.y()))
+            identyfikatory_punktow.append(f.id())
+
+        # Utworzenie poligonu
+        poligon = QgsGeometry.fromPolygonXY(
+            [[QgsPointXY(p.x(), p.y()) for p in punkty]])
+
+        # Utworzenie nowej warstwy wektorowej do przechowywania poligonu
+        nowa_warstwa = QgsVectorLayer(
+            "Polygon?crs=EPSG:2180", "Nowy poligon", "memory")
+        projekt = QgsProject.instance()
+        projekt.addMapLayer(nowa_warstwa)
+
+        # Rozpoczęcie edycji warstwy
+        nowa_warstwa.startEditing()
+
+        # Utworzenie nowego obiektu cechowego i dodanie go do warstwy
+        cecha = QgsFeature()
+        cecha.setGeometry(poligon)
+        nowa_warstwa.addFeature(cecha)
+
+        # Zakończenie edycji warstwy
+        nowa_warstwa.commitChanges()
+
+        # Powierzchnia policzona z Gaussa
+        powierzchnia = self.powierzchnia_gaussa(punkty)
+
+        # Sprawdzenie atrybutu geometry().area()
+        pole_poligonu = round(poligon.area(), 3)
+        iface.messageBar().pushMessage(
+            "Wynik",
+            f"Pole poligonu o wierzchołkach w punktach {', '.join(map(str, identyfikatory_punktow))} wynosi: {pole_poligonu}",
+            level=Qgis.Success
+        )
+        self.label_poligon.setText(f"{pole_poligonu} m²")
