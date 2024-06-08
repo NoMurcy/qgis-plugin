@@ -259,9 +259,13 @@ class BasicCalculationsDialog(QtWidgets.QDialog, FORM_CLASS):
         poligon = QgsGeometry.fromPolygonXY(
             [[QgsPointXY(p.x(), p.y()) for p in punkty]])
 
+        # Pobranie CRS z warstwy punktowej
+        crs = warstwa.crs()
+
         # Utworzenie nowej warstwy wektorowej do przechowywania poligonu
         nowa_warstwa = QgsVectorLayer(
-            "Polygon?crs=EPSG:2180", "Nowy poligon", "memory")
+            "Polygon", "Poligon", "memory")
+        nowa_warstwa.setCrs(crs)
         projekt = QgsProject.instance()
         projekt.addMapLayer(nowa_warstwa)
 
