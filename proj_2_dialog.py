@@ -22,10 +22,11 @@
  ***************************************************************************/
 """
 import os
+import csv
 
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
-from qgis.core import QgsProject, QgsGeometry, QgsPointXY, Qgis, QgsWkbTypes, QgsFeature, QgsField, QgsVectorLayer
+from qgis.core import QgsProject, QgsGeometry, QgsPointXY, Qgis, QgsWkbTypes, QgsFeature, QgsField, QgsVectorLayer, QgsCoordinateReferenceSystem, QgsCoordinateTransformContext
 from qgis.utils import iface
 
 # Wczytanie pliku .ui, aby PyQt mógł wypełnić wtyczkę elementami z Qt Designer
@@ -46,6 +47,77 @@ class BasicCalculationsDialog(QtWidgets.QDialog, FORM_CLASS):
         self.przycisk_czysc.clicked.connect(self.czysc_wyniki)
         self.przycisk_zaznacz.clicked.connect(self.zaznacz_nowe_obiekty)
         self.poligon.clicked.connect(self.utworz_poligon)
+        self.przycisk_wczytaj.clicked.connect(self.wczytaj_plik)
+
+        self.strefa.setVisible(False)
+        self.label_strefa.setVisible(False)
+
+        self.uklad.currentIndexChanged.connect(self.zmien_widocznosc_strefy)
+
+    def zmien_widocznosc_strefy(self):
+        # Sprawdzenie, czy wybrano "EPSG:2000"
+        if self.uklad.currentText() == "2000":
+            self.label_strefa.setVisible(True)
+            self.strefa.setVisible(True)
+        else:
+            self.label_strefa.setVisible(False)
+            self.strefa.setVisible(False)
+
+    def wczytaj_plik(self):
+        plik, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Wybierz plik", "", "Pliki tekstowe (*.txt *.csv)")
+        if not plik:
+            return
+
+        wybrany_uklad = self.uklad.currentText()
+        if wybrany_uklad == "1992":
+            crs = QgsCoordinateReferenceSystem("EPSG:2180")
+        elif wybrany_uklad == "2000":
+            strefa = self.strefa.currentText()
+            crs = QgsCoordinateReferenceSystem(f"EPSG:217{int(strefa) + 1}")
+        else:
+            crs = QgsCoordinateReferenceSystem("EPSG:2180")
+
+        # Utwórz warstwę punktową
+        nowa_warstwa = QgsVectorLayer("Point", "punkty", "memory")
+        nowa_warstwa.setCrs(crs)
+
+        with open(plik, newline='', encoding='utf-8') as csvfile:
+            reader = csv.reader(csvfile, delimiter=' ', quotechar='"')
+            self.tabela_wsp.setRowCount(0)
+            for row_index, row_data in enumerate(reader):
+                if len(row_data) >= 2:  # Sprawdź czy są przynajmniej dwie kolumny
+                    self.tabela_wsp.insertRow(row_index)
+                    # Użyj tylko dwóch pierwszych kolumn
+                    for column_index, data in enumerate(row_data[:2]):
+                        self.tabela_wsp.setItem(
+                            row_index, column_index, QtWidgets.QTableWidgetItem(data))
+
+        with open(plik, newline='', encoding='utf-8') as csvfile:
+            reader = csv.reader(csvfile, delimiter=' ', quotechar='"')
+            for row_data in reader:
+                if len(row_data) >= 2:  # Sprawdź czy są przynajmniej dwie kolumny
+                    try:
+                        x = float(row_data[0])
+                        y = float(row_data[1])
+                    except ValueError:
+                        iface.messageBar().pushMessage(
+                            "Błąd", "Nieprawidłowy format danych w pliku.", level=Qgis.Warning)
+                        return
+                    punkt = QgsPointXY(x, y)
+                    cecha = QgsFeature()
+                    cecha.setGeometry(QgsGeometry.fromPointXY(punkt))
+                    nowa_warstwa.dataProvider().addFeatures([cecha])
+
+        # Zapisz zmiany na warstwie
+        nowa_warstwa.updateExtents()
+
+        # Dodaj warstwę do projektu
+        projekt = QgsProject.instance()
+        projekt.addMapLayer(nowa_warstwa)
+
+        # Odśwież widok mapy
+        iface.mapCanvas().refresh()
 
     def oblicz_roznice_wysokosci(self):
         # Pobranie wybranej warstwy
@@ -205,7 +277,7 @@ class BasicCalculationsDialog(QtWidgets.QDialog, FORM_CLASS):
         nowa_warstwa.commitChanges()
 
         # Powierzchnia policzona z Gaussa
-        powierzchnia = self.powierzchnia_gaussa(punkty)
+        #powierzchnia = self.powierzchnia_gaussa(punkty)
 
         # Sprawdzenie atrybutu geometry().area()
         pole_poligonu = round(poligon.area(), 3)
