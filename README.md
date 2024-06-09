@@ -11,20 +11,20 @@ Po zainstalowaniu oraz włączeniu naszej wtyczki wyświetli się interfejs uży
 ![interfejs]("grafiki/interfejs.png")
 Dla ułatwienia opisu funkcji na załączonym obrazku każdej opcji przypisany został numer. 
 * `1 - Choose layer:` jest to funkcja pozwalająca na wybór warstwy na której znajdują się zaznaczone przez nas punkty w programie QGIS. Rozwijana lista pozwala na wybór dowolnej warstwy istniejącej na aktywnym projekcie. 
-![warstwy]("grafiki/warstwy.png")
+![warstwy]("./qgis-plugin/warstwy.png")
 * `2 - Przewyższenie:` jest to opcja pozwalająca na obliczenie przewyższenia między dwoma dowolnymi punktami. Wymaganiem dla tej funkcji jest zdefiniowana wysokość punktów.
 * `3 - Pole:` jest to opcja pozwalająca na obliczenie pola zaznaczonymi między minimum trzema punktami.
 * `4 - Jednostka:` jest to opcja pozwalająca użytkownikowi na wybranie jednostki w której wyświetlą się wyniki wykonanych obliczeń.
-![jednostki]("grafiki/jednostki.png")
+![jednostki]("./qgis-plugin/jednostki.png")
 * `5 - Utwórz i oblicz poligon` funkcja tworzy dodatkową warstwę o nazwie poligon między punktami które zostały przez nasz oznaczone.
-![poligon]("grafiki/poligon.png")
+![poligon]("./qgis-plugin/poligon.png")
 * `Wczytywanie pliku` pozwala użytkownikowi na wczytanie pliku ze współrzędnymi. Program następnie umieszcza te punkty jako nową warstwę. 
 Podczas wczytywania pliku musimy pamiętać o wybraniu odpowiednich ustawień. 
 * `6 - Układ` jest to opcja pozwalająca na wybranie układu odniesienia w którym znajdują się współrzędne punktów z pliku. 
-![układ]("grafiki/układ.png")
+![układ]("./qgis-plugin/układ.png")
 * `7 - Wczytaj` za pomocą tego przycisku wyszukujemy z plików znajdujących się na naszym urządzeniu plik ze współrzędnymi punktów. 
 * `8 - Strefa` jest to funkcja pozwalająca wprowadzić strefie w której znajdują się współrzędne punktu w przydatku gdy wybieramy układ PL-2000.
-![strefa]("grafiki/strefa.png")
+![strefa]("./qgis-plugin/strefa.png")
 
 ## Wybór punktów 
 
