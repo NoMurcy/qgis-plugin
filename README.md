@@ -8,23 +8,23 @@ Projekt tworzony był za pomocą Pythona w wersji 3.11.5. Zaimportowane bibliote
 ## Działania w interfejsie użytkownika:
 
 Po zainstalowaniu oraz włączeniu naszej wtyczki wyświetli się interfejs użytkownika, wyglądający następująco 
-![interfejs]("./grafiki/interfejs.png")
+![interfejs]("grafiki/interfejs.png")
 Dla ułatwienia opisu funkcji na załączonym obrazku każdej opcji przypisany został numer. 
 * `1 - Choose layer:` jest to funkcja pozwalająca na wybór warstwy na której znajdują się zaznaczone przez nas punkty w programie QGIS. Rozwijana lista pozwala na wybór dowolnej warstwy istniejącej na aktywnym projekcie. 
-![warstwy]("./grafiki/warstwy.png")
+![warstwy]("grafiki/warstwy.png")
 * `2 - Przewyższenie:` jest to opcja pozwalająca na obliczenie przewyższenia między dwoma dowolnymi punktami. Wymaganiem dla tej funkcji jest zdefiniowana wysokość punktów.
 * `3 - Pole:` jest to opcja pozwalająca na obliczenie pola zaznaczonymi między minimum trzema punktami.
 * `4 - Jednostka:` jest to opcja pozwalająca użytkownikowi na wybranie jednostki w której wyświetlą się wyniki wykonanych obliczeń.
-![jednostki]("./grafiki/jednostki.png")
+![jednostki]("grafiki/jednostki.png")
 * `5 - Utwórz i oblicz poligon` funkcja tworzy dodatkową warstwę o nazwie poligon między punktami które zostały przez nasz oznaczone.
-![poligon]("./grafiki/poligon.png")
+![poligon]("grafiki/poligon.png")
 * `Wczytywanie pliku` pozwala użytkownikowi na wczytanie pliku ze współrzędnymi. Program następnie umieszcza te punkty jako nową warstwę. 
 Podczas wczytywania pliku musimy pamiętać o wybraniu odpowiednich ustawień. 
 * `6 - Układ` jest to opcja pozwalająca na wybranie układu odniesienia w którym znajdują się współrzędne punktów z pliku. 
-![układ]("./grafiki/układ.png")
+![układ]("grafiki/układ.png")
 * `7 - Wczytaj` za pomocą tego przycisku wyszukujemy z plików znajdujących się na naszym urządzeniu plik ze współrzędnymi punktów. 
 * `8 - Strefa` jest to funkcja pozwalająca wprowadzić strefie w której znajdują się współrzędne punktu w przydatku gdy wybieramy układ PL-2000.
-![strefa]("./grafiki/strefa.png")
+![strefa]("grafiki/strefa.png")
 
 ## Wybór punktów 
 
