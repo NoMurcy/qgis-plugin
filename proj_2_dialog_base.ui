@@ -54,7 +54,7 @@
     </font>
    </property>
    <property name="text">
-    <string>Choose layer:</string>
+    <string>Wybierz warstwę:</string>
    </property>
   </widget>
   <widget class="QPushButton" name="przycisk_pole">
